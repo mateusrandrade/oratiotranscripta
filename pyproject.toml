@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oratiotranscripta"
+version = "0.1.0"
+description = "Pipeline modular para transcrição, alinhamento e exportação de áudio."
+readme = "README.md"
+authors = [{ name = "OratioTranscripta" }]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+  "yt-dlp>=2023.10.13",
+  "webrtcvad>=2.0.10",
+]
+
+[project.optional-dependencies]
+asr = [
+  "openai-whisper>=20230314",
+]
+faster = [
+  "faster-whisper>=0.9.0",
+]
+alignment = [
+  "whisperx>=3.1",
+]
+diarization = [
+  "pyannote.audio>=3.0.1",
+]
+silero = [
+  "torch>=2.0.0",
+  "torchaudio>=2.0.0",
+]
+all = [
+  "openai-whisper>=20230314",
+  "faster-whisper>=0.9.0",
+  "whisperx>=3.1",
+  "pyannote.audio>=3.0.1",
+  "torch>=2.0.0",
+  "torchaudio>=2.0.0",
+]
+
+[project.scripts]
+oratiotranscripta = "oratiotranscripta.cli:main"

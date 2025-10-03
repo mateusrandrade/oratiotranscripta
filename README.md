@@ -2,6 +2,22 @@
 
 Pipeline em Python para transcrição e anotação automática de áudio, integrando Whisper, pyannote e outras ferramentas open-source para converter fala em texto e estruturar metadados de forma eficiente.
 
+## Sobre o projeto
+
+### Oratio Transcripta
+
+**Oratio Transcripta** é um projeto open-source dedicado à arte de transformar discurso em texto. Inspirado na tradição clássica do termo *oratio* (“discurso”) e no verbo latino *transcribere* (“passar de uma forma a outra”), o projeto une rigor e tecnologia para oferecer transcrições automáticas precisas e anotadas.
+
+Construído em Python, integra ferramentas como **Whisper**, **pyannote** e outras bibliotecas abertas para criar um pipeline flexível de processamento de áudio, capaz de:
+
+* Converter fala em texto com alta fidelidade.
+* Segmentar, anotar e estruturar metadados de forma clara.
+* Apoiar aplicações em pesquisa, ensino, acessibilidade e arquivamento digital.
+
+Mais do que um simples transcritor, o **Oratio Transcripta** é uma proposta de valorização da palavra: cada voz registrada encontra aqui um caminho para se tornar memória escrita.
+
+---
+
 ## Recursos principais
 
 - **Ingestão flexível**: suporte a arquivos locais ou YouTube (`yt-dlp`) com normalização automática de áudio via `ffmpeg`.

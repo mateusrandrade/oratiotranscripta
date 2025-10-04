@@ -143,14 +143,23 @@ class SileroVAD(BaseVAD):
             "device": self.device,
         }
 
-        if "threshold" in inspect.signature(self.collect_chunks).parameters:
+        collect_signature = inspect.signature(self.collect_chunks)
+        collect_params = collect_signature.parameters
+
+        if "threshold" in collect_params:
             collect_kwargs["threshold"] = 0.5
+
+        ckw = {
+            key: value
+            for key, value in collect_kwargs.items()
+            if key in collect_params
+        }
 
         try:
             speeches = self.collect_chunks(
                 self.model,
                 wav,
-                **collect_kwargs,
+                **ckw,
             )
         except Exception:
             ts_params = inspect.signature(self.get_speech_timestamps).parameters

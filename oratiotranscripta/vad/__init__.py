@@ -104,6 +104,7 @@ class SileroVAD(BaseVAD):
                 repo_or_dir="snakers4/silero-vad",
                 model="silero_vad",
                 force_reload=False,
+                trust_repo=True,
             )
         except Exception as exc:  # pragma: no cover - heavy optional dependency
             raise RuntimeError("Falha ao carregar modelo Silero VAD") from exc

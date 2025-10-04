@@ -22,6 +22,7 @@ O **Oratio Transcripta** é uma proposta de valorização da palavra, da histór
 
 - **Ingestão flexível**: suporte a arquivos locais ou YouTube (`yt-dlp`) com normalização automática de áudio via `ffmpeg`.
 - **Detecção de voz (VAD)**: backends selecionáveis (`webrtc`, `silero`, `pyannote`) com possibilidade de bypass.
+  - O backend Silero é carregado via `torch.hub` com `trust_repo=True` para evitar prompts interativos sobre confiança no repositório oficial do modelo.
 - **Reconhecimento de fala (ASR)**: escolha entre Whisper oficial ou Faster-Whisper (CTranslate2) com seleção automática de CPU/GPU.
 - **Alinhamento opcional**: integração com WhisperX para produzir timestamps de palavras de alta precisão.
 - **Diarização**: heurísticas básicas de energia/pausa ou pipeline pré-treinado do `pyannote.audio` (requer token HF).

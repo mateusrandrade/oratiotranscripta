@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import logging
 import wave
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional
@@ -133,9 +134,10 @@ class SileroVAD(BaseVAD):
         ) = utils
 
     def __call__(self, audio_path: Path) -> List[VADSegment]:
-        wav = self.read_audio(str(audio_path), sampling_rate=16_000)
+        sampling_rate = 16_000
+        wav = self.read_audio(str(audio_path), sampling_rate=sampling_rate)
         collect_kwargs = {
-            "sampling_rate": 16_000,
+            "sampling_rate": sampling_rate,
             "min_speech_duration_ms": 250,
             "max_speech_duration_s": 15,
             "min_silence_duration_ms": 100,
@@ -149,10 +151,15 @@ class SileroVAD(BaseVAD):
         if "threshold" in collect_params:
             collect_kwargs["threshold"] = 0.5
 
+        allows_var_kwargs = any(
+            param.kind is inspect.Parameter.VAR_KEYWORD
+            for param in collect_params.values()
+        )
+
         ckw = {
             key: value
             for key, value in collect_kwargs.items()
-            if key in collect_params
+            if key in collect_params or allows_var_kwargs
         }
 
         try:
@@ -177,8 +184,51 @@ class SileroVAD(BaseVAD):
                 self.model,
                 **ts_kwargs,
             )
-        segments = [VADSegment(s[0] / 1000.0, s[1] / 1000.0) for s in speeches]
+        segments = self._normalize_speeches(speeches, sr=float(sampling_rate))
         logger.debug("Silero VAD produced %d segments", len(segments))
+        return segments
+
+    def _normalize_speeches(
+        self,
+        speeches,
+        sr: float = 16_000.0,
+        merge_gap: Optional[float] = None,
+    ) -> List[VADSegment]:
+        """Convert Silero speech spans to :class:`VADSegment` objects."""
+
+        def _convert(item) -> VADSegment:
+            if isinstance(item, Mapping):
+                if "start_ms" in item and "end_ms" in item:
+                    start = float(item["start_ms"]) / 1000.0
+                    end = float(item["end_ms"]) / 1000.0
+                    return VADSegment(start, end)
+                if "start" in item and "end" in item:
+                    start = float(item["start"]) / float(sr)
+                    end = float(item["end"]) / float(sr)
+                    return VADSegment(start, end)
+                raise ValueError("Mapping item missing expected keys 'start'/'end'")
+            if isinstance(item, Sequence) and not isinstance(item, (str, bytes)):
+                if len(item) < 2:
+                    raise ValueError("Sequence item must contain at least start and end")
+                start = float(item[0]) / 1000.0
+                end = float(item[1]) / 1000.0
+                return VADSegment(start, end)
+            raise TypeError(
+                "Unsupported speech item type: expected mapping or sequence of timings"
+            )
+
+        if isinstance(speeches, Mapping):
+            items = [speeches]
+        elif isinstance(speeches, Sequence) and not isinstance(speeches, (str, bytes)):
+            items = list(speeches)
+        else:
+            items = list(speeches)
+
+        segments = sorted((_convert(item) for item in items), key=lambda seg: seg.start)
+
+        if merge_gap is not None and merge_gap >= 0:
+            return _merge_close_segments(segments, gap=merge_gap)
+
         return segments
 
 

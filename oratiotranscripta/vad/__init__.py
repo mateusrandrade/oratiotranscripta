@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 import wave
 from dataclasses import dataclass
@@ -117,16 +118,22 @@ class SileroVAD(BaseVAD):
 
     def __call__(self, audio_path: Path) -> List[VADSegment]:
         wav = self.read_audio(str(audio_path), sampling_rate=16_000)
+        collect_kwargs = {
+            "sampling_rate": 16_000,
+            "min_speech_duration_ms": 250,
+            "max_speech_duration_s": 15,
+            "min_silence_duration_ms": 100,
+            "speech_pad_ms": 120,
+            "device": self.device,
+        }
+
+        if "threshold" in inspect.signature(self.collect_chunks).parameters:
+            collect_kwargs["threshold"] = 0.5
+
         speeches = self.collect_chunks(
             self.model,
             wav,
-            sampling_rate=16_000,
-            threshold=0.5,
-            min_speech_duration_ms=250,
-            max_speech_duration_s=15,
-            min_silence_duration_ms=100,
-            speech_pad_ms=120,
-            device=self.device,
+            **collect_kwargs,
         )
         segments = [VADSegment(s[0] / 1000.0, s[1] / 1000.0) for s in speeches]
         logger.debug("Silero VAD produced %d segments", len(segments))

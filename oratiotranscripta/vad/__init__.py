@@ -161,7 +161,11 @@ class SileroVAD(BaseVAD):
                 wav,
                 **ckw,
             )
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "Silero collect_chunks falhou; usando get_speech_timestamps como fallback: %s",
+                exc,
+            )
             ts_params = inspect.signature(self.get_speech_timestamps).parameters
             ts_kwargs = {
                 key: value

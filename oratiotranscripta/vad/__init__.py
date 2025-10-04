@@ -11,6 +11,10 @@ from typing import Iterable, List, Optional
 
 logger = logging.getLogger(__name__)
 
+# Pin the Silero VAD torch hub reference to a known-good release so that future
+# upstream changes do not silently change the model behaviour or break loading.
+SILERO_VAD_REPO_REF = "snakers4/silero-vad:v5.0"
+
 
 @dataclass
 class VADSegment:
@@ -91,7 +95,11 @@ class WebRTCVAD(BaseVAD):
 class SileroVAD(BaseVAD):
     """Silero VAD via torch hub."""
 
-    def __init__(self, device: Optional[str] = None):
+    def __init__(
+        self,
+        device: Optional[str] = None,
+        repo_ref: str = SILERO_VAD_REPO_REF,
+    ):
         try:
             import torch
         except ImportError as exc:  # pragma: no cover - optional dependency
@@ -103,14 +111,14 @@ class SileroVAD(BaseVAD):
         try:
             try:
                 self.model, utils = torch.hub.load(
-                    repo_or_dir="snakers4/silero-vad",
+                    repo_or_dir=repo_ref,
                     model="silero_vad",
                     force_reload=False,
                     trust_repo=True,
                 )
             except TypeError:
                 self.model, utils = torch.hub.load(
-                    repo_or_dir="snakers4/silero-vad",
+                    repo_or_dir=repo_ref,
                     model="silero_vad",
                     force_reload=False,
                 )

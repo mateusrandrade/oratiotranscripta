@@ -138,11 +138,24 @@ class SileroVAD(BaseVAD):
         if "threshold" in inspect.signature(self.collect_chunks).parameters:
             collect_kwargs["threshold"] = 0.5
 
-        speeches = self.collect_chunks(
-            self.model,
-            wav,
-            **collect_kwargs,
-        )
+        try:
+            speeches = self.collect_chunks(
+                self.model,
+                wav,
+                **collect_kwargs,
+            )
+        except Exception:
+            ts_params = inspect.signature(self.get_speech_timestamps).parameters
+            ts_kwargs = {
+                key: value
+                for key, value in collect_kwargs.items()
+                if key in ts_params
+            }
+            speeches = self.get_speech_timestamps(
+                wav,
+                self.model,
+                **ts_kwargs,
+            )
         segments = [VADSegment(s[0] / 1000.0, s[1] / 1000.0) for s in speeches]
         logger.debug("Silero VAD produced %d segments", len(segments))
         return segments

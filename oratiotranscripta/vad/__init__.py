@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+import math
 import wave
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -196,26 +197,50 @@ class SileroVAD(BaseVAD):
     ) -> List[VADSegment]:
         """Convert Silero speech spans to :class:`VADSegment` objects."""
 
-        def _convert(item) -> VADSegment:
+        def _convert(item) -> Optional[VADSegment]:
             if isinstance(item, Mapping):
                 if "start_ms" in item and "end_ms" in item:
-                    start = float(item["start_ms"]) / 1000.0
-                    end = float(item["end_ms"]) / 1000.0
-                    return VADSegment(start, end)
+                    raw_start = item["start_ms"]
+                    raw_end = item["end_ms"]
+                    start_s = None if raw_start is None else float(raw_start) / 1000.0
+                    end_s = None if raw_end is None else float(raw_end) / 1000.0
+                    return _validate_and_create_segment(start_s, end_s, item)
                 if "start" in item and "end" in item:
-                    start = float(item["start"]) / float(sr)
-                    end = float(item["end"]) / float(sr)
-                    return VADSegment(start, end)
+                    raw_start = item["start"]
+                    raw_end = item["end"]
+                    start_s = None if raw_start is None else float(raw_start) / float(sr)
+                    end_s = None if raw_end is None else float(raw_end) / float(sr)
+                    return _validate_and_create_segment(start_s, end_s, item)
                 raise ValueError("Mapping item missing expected keys 'start'/'end'")
             if isinstance(item, Sequence) and not isinstance(item, (str, bytes)):
                 if len(item) < 2:
                     raise ValueError("Sequence item must contain at least start and end")
-                start = float(item[0]) / 1000.0
-                end = float(item[1]) / 1000.0
-                return VADSegment(start, end)
+                raw_start, raw_end = item[0], item[1]
+                start_s = None if raw_start is None else float(raw_start) / 1000.0
+                end_s = None if raw_end is None else float(raw_end) / 1000.0
+                return _validate_and_create_segment(start_s, end_s, item)
             raise TypeError(
                 "Unsupported speech item type: expected mapping or sequence of timings"
             )
+
+        def _validate_and_create_segment(
+            start_s: Optional[float], end_s: Optional[float], source
+        ) -> Optional[VADSegment]:
+            reason: Optional[str] = None
+            if start_s is None or end_s is None:
+                reason = "missing start or end"
+            elif math.isnan(start_s) or math.isnan(end_s):
+                reason = "NaN start or end"
+            elif start_s < 0 or end_s < 0:
+                reason = "negative start or end"
+            elif end_s <= start_s:
+                reason = "end not greater than start"
+
+            if reason is not None:
+                logger.warning("Skipping invalid speech segment %r: %s", source, reason)
+                return None
+
+            return VADSegment(start_s, end_s)
 
         if isinstance(speeches, Mapping):
             items = [speeches]
@@ -224,9 +249,10 @@ class SileroVAD(BaseVAD):
         else:
             items = list(speeches)
 
-        segments = sorted((_convert(item) for item in items), key=lambda seg: seg.start)
+        segments = [segment for item in items if (segment := _convert(item)) is not None]
+        segments.sort(key=lambda seg: seg.start)
 
-        if merge_gap is not None and merge_gap >= 0:
+        if merge_gap is not None and segments:
             return _merge_close_segments(segments, gap=merge_gap)
 
         return segments

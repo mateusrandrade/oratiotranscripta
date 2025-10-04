@@ -101,12 +101,19 @@ class SileroVAD(BaseVAD):
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = device
         try:
-            self.model, utils = torch.hub.load(
-                repo_or_dir="snakers4/silero-vad",
-                model="silero_vad",
-                force_reload=False,
-                trust_repo=True,
-            )
+            try:
+                self.model, utils = torch.hub.load(
+                    repo_or_dir="snakers4/silero-vad",
+                    model="silero_vad",
+                    force_reload=False,
+                    trust_repo=True,
+                )
+            except TypeError:
+                self.model, utils = torch.hub.load(
+                    repo_or_dir="snakers4/silero-vad",
+                    model="silero_vad",
+                    force_reload=False,
+                )
         except Exception as exc:  # pragma: no cover - heavy optional dependency
             raise RuntimeError("Falha ao carregar modelo Silero VAD") from exc
         (

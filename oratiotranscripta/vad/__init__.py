@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import logging
 import math
+import os
 import wave
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -258,6 +259,18 @@ class SileroVAD(BaseVAD):
         return segments
 
 
+def _resolve_hf_vad_token(auth_token: Optional[str]) -> str:
+    token = auth_token or os.getenv("HUGGINGFACE_TOKEN") or os.getenv("PYANNOTE_TOKEN")
+    if not token:
+        raise RuntimeError(
+            "Token Hugging Face não encontrado. Informe auth_token= ao inicializar o "
+            "PyannoteVAD, ou defina as variáveis HUGGINGFACE_TOKEN/PYANNOTE_TOKEN. "
+            "Gere um token em https://huggingface.co/settings/tokens e aceite os "
+            "termos do modelo em https://huggingface.co/pyannote/voice-activity-detection."
+        )
+    return token
+
+
 class PyannoteVAD(BaseVAD):
     """pyannote.audio VAD pipeline."""
 
@@ -267,10 +280,32 @@ class PyannoteVAD(BaseVAD):
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError("pyannote.audio não está instalado") from exc
 
-        self.pipeline = Pipeline.from_pretrained(
-            "pyannote/voice-activity-detection",
-            use_auth_token=auth_token,
-        )
+        token = _resolve_hf_vad_token(auth_token)
+
+        try:
+            try:
+                self.pipeline = Pipeline.from_pretrained(
+                    "pyannote/voice-activity-detection",
+                    use_auth_token=token,
+                )
+            except TypeError:
+                self.pipeline = Pipeline.from_pretrained(
+                    "pyannote/voice-activity-detection",
+                    token=token,
+                )
+        except Exception as exc:  # pragma: no cover - network/auth errors
+            status_code = getattr(getattr(exc, "response", None), "status_code", None)
+            message = str(exc)
+            if status_code in {401, 403} or any(
+                indicator in message for indicator in {"403", "401", "Unauthorized"}
+            ):
+                raise RuntimeError(
+                    "Falha na autenticação com o modelo de VAD pyannote. "
+                    "Verifique se o token informado é válido, se você aceitou os "
+                    "termos em https://huggingface.co/pyannote/voice-activity-detection "
+                    "e se possui acesso ao modelo na sua conta Hugging Face."
+                ) from exc
+            raise
 
     def __call__(self, audio_path: Path) -> List[VADSegment]:
         vad_result = self.pipeline(audio_path)

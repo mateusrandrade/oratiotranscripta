@@ -26,7 +26,14 @@ alignment = [
   "whisperx>=3.1",
 ]
 diarization = [
-  "pyannote.audio>=3.0.1",
+  "pyannote.audio>=3.3",
+  "speechbrain>=1.0.0",
+  "matplotlib>=3.10,<3.11",
+]
+pyannote = [
+  "pyannote.audio>=3.3",
+  "speechbrain>=1.0.0",
+  "matplotlib>=3.10,<3.11",
 ]
 silero = [
   "torch>=2.0.0",
@@ -36,7 +43,9 @@ all = [
   "openai-whisper>=20230314",
   "faster-whisper>=0.9.0",
   "whisperx>=3.1",
-  "pyannote.audio>=3.0.1",
+  "pyannote.audio>=3.3",
+  "speechbrain>=1.0.0",
+  "matplotlib>=3.10,<3.11",
   "torch>=2.0.0",
   "torchaudio>=2.0.0",
 ]

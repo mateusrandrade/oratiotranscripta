@@ -35,7 +35,19 @@ O **Oratio Transcripta** é uma proposta de valorização da palavra, da histór
 pip install .[all]  # instala o pacote e todas as dependências opcionais
 ```
 
-Para instalações mínimas use apenas o conjunto de extras necessário, por exemplo `pip install .[asr]`.
+Os extras disponíveis permitem instalar apenas os componentes necessários:
+
+| Extra | Dependências principais | Quando usar |
+|-------|-------------------------|-------------|
+| `asr` | `openai-whisper>=20230314` | Transcrição com Whisper oficial. |
+| `faster` | `faster-whisper>=0.9.0` | Transcrição com Faster-Whisper (CTranslate2). |
+| `alignment` | `whisperx>=3.1` | Alinhamento de palavras com WhisperX. |
+| `diarization` | `pyannote.audio>=3.3`, `speechbrain>=1.0.0`, `matplotlib>=3.10,<3.11` | Pipeline pyannote para diarização/VAD. |
+| `pyannote` | `pyannote.audio>=3.3`, `speechbrain>=1.0.0`, `matplotlib>=3.10,<3.11` | Instalação dedicada às funcionalidades pyannote (VAD/diarização). |
+| `silero` | `torch>=2.0.0`, `torchaudio>=2.0.0` | VAD com Silero. |
+| `all` | União explícita de todos os extras acima | Instalação completa com todos os backends opcionais. |
+
+Para instalações mínimas escolha apenas os extras necessários, por exemplo `pip install .[asr]` ou `pip install .[pyannote]`.
 
 Certifique-se de ter `ffmpeg` disponível no PATH para normalização e extração de áudio.
 

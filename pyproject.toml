@@ -52,3 +52,7 @@ all = [
 
 [project.scripts]
 oratiotranscripta = "oratiotranscripta.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["oratiotranscripta*"]
+exclude = ["saidas*", "tests*", "docs*", "examples*", "scripts*"]

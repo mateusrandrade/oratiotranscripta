@@ -38,7 +38,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--window", type=float, help="Janela fixa em segundos para agregação de legendas")
     parser.add_argument("--vad", default="auto", help="Backend de VAD: auto, webrtc, silero, pyannote, none")
     parser.add_argument("--diarize", choices=["none", "basic", "pyannote"], default="none", help="Modo de diarização")
-    parser.add_argument("--pyannote-token", help="Token de autenticação da HuggingFace para pipelines pyannote")
+    parser.add_argument(
+        "--pyannote-token",
+        help=(
+            "Token de autenticação da Hugging Face para pipelines pyannote. "
+            "Caso omitido, serão utilizadas as variáveis HUGGINGFACE_TOKEN ou "
+            "PYANNOTE_TOKEN. É necessário aceitar os termos dos modelos pyannote"
+        ),
+    )
     parser.add_argument("--align", action="store_true", help="Habilita alinhamento de palavras com WhisperX")
     parser.add_argument("--words", action="store_true", help="Exporta metadados de palavras quando suportado")
     parser.add_argument("--keep-temp", action="store_true", help="Mantém diretórios temporários gerados")

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import audioop
 import logging
+import os
 import wave
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
+
+MODEL_ID = "pyannote/speaker-diarization-3.1"
 
 from ..asr import TranscriptionResult, TranscriptionSegment
 
@@ -33,7 +36,7 @@ def apply_diarization(
         result.metadata["diarization"] = {"mode": "basic"}
         return result
     if mode == "pyannote":
-        _pyannote_diarization(result, audio_path, config.pyannote_token)
+        _pyannote_diarization(result, audio_path, config)
         result.metadata["diarization"] = {"mode": "pyannote"}
         return result
     raise ValueError(f"Modo de diarização desconhecido: {config.mode}")
@@ -76,13 +79,45 @@ def _segment_energies(audio_path: Path, segments: List[TranscriptionSegment]) ->
     return energies
 
 
-def _pyannote_diarization(result: TranscriptionResult, audio_path: Path, token: Optional[str]) -> None:
+def _resolve_hf_token(config: DiarizationConfig) -> str:
+    token = (
+        config.pyannote_token
+        or os.getenv("HUGGINGFACE_TOKEN")
+        or os.getenv("PYANNOTE_TOKEN")
+    )
+    if not token:
+        raise RuntimeError(
+            "Token Hugging Face não encontrado. Informe --pyannote-token, "
+            "ou defina as variáveis HUGGINGFACE_TOKEN/PYANNOTE_TOKEN. Gere "
+            "um token em https://huggingface.co/settings/tokens e aceite os "
+            "termos do modelo em https://huggingface.co/pyannote/speaker-diarization-3.1."
+        )
+    return token
+
+
+def _pyannote_diarization(result: TranscriptionResult, audio_path: Path, config: DiarizationConfig) -> None:
     try:
         from pyannote.audio import Pipeline  # type: ignore
     except ImportError as exc:  # pragma: no cover - optional dependency
         raise RuntimeError("pyannote.audio não está instalado") from exc
 
-    pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token=token)
+    token = _resolve_hf_token(config)
+
+    try:
+        try:
+            pipeline = Pipeline.from_pretrained(MODEL_ID, use_auth_token=token)
+        except TypeError:
+            pipeline = Pipeline.from_pretrained(MODEL_ID, token=token)
+    except Exception as exc:  # pragma: no cover - network/auth errors
+        status_code = getattr(getattr(exc, "response", None), "status_code", None)
+        if status_code in {401, 403}:
+            raise RuntimeError(
+                "Falha na autenticação com o modelo pyannote. Verifique se o "
+                "token está correto e se você aceitou os termos em "
+                "https://huggingface.co/pyannote/speaker-diarization-3.1."
+            ) from exc
+        raise
+
     diarization = pipeline(audio_path)
     for turn, _, speaker in diarization.itertracks(yield_label=True):
         _assign_speaker(result.segments, turn.start, turn.end, speaker)

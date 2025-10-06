@@ -31,7 +31,7 @@ O **Oratio Transcripta** é uma proposta de valorização da palavra, da histór
 
 ## Perfis de uso recomendados
 
-O Oratio Transcripta foi concebido para adaptar-se a diferentes contextos de pesquisa e produção audiovisual.
+O Oratio Transcripta foi concebido para adaptar-se a diferentes contextos de pesquisa e produção de material em suporte audiovisual.
 Três modos principais de uso são recomendados, de acordo com o perfil do material e o objetivo da transcrição:
 
 | Tarefa | Modelo recomendado | Justificativa técnica e de uso |

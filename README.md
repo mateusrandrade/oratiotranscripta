@@ -29,6 +29,20 @@ O **Oratio Transcripta** é uma proposta de valorização da palavra, da histór
 - **Agregação flexível**: preserva segmentos originais ou gera blocos temporais fixos (`--window`) adequados para legendas.
 - **Exportação rica**: gera `.txt`, `.srt`, `.vtt` e `.json` com metadados de speakers, confidences e timestamps.
 
+## Perfis de uso recomendados
+
+O Oratio Transcripta foi concebido para adaptar-se a diferentes contextos de pesquisa e produção audiovisual.
+Três modos principais de uso são recomendados, de acordo com o perfil do material e o objetivo da transcrição:
+
+| Tarefa | Modelo recomendado | Justificativa técnica e de uso |
+|-------|--------------------|--------------------------------|
+| 1. Transcrição de palestras ou aulas com múltiplos interlocutores | Pyannote | Apresenta o melhor desempenho em diarização consistente e coesão semântica. Ideal para entrevistas coletivas, mesas-redondas, podcasts e discussões acadêmicas. |
+| 2. Criação de legendas sincronizadas em vídeos | WebRTC | Alta precisão temporal e sensibilidade a pausas curtas. Excelente para sincronização audiovisual, geração automática de legendas (SRT/VTT) e pré-processamento de vídeos educacionais. |
+| 3. Gravações monofônicas em ambientes controlados | Silero | Leve e eficiente, indicado para gravações individuais (aulas expositivas, entrevistas, narrações). Pode ser executado em máquinas comuns sem GPU. |
+
+Esses três modos formam o núcleo de um protocolo aberto de transcrição e anotação automática de fala, permitindo equilibrar precisão, desempenho e finalidade de pesquisa.
+
+
 ## Instalação
 
 ```bash

@@ -4,18 +4,40 @@ from __future__ import annotations
 
 import argparse
 import logging
+from copy import deepcopy
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from .aggregation import AggregationConfig, aggregate_segments
 from .alignment import AlignmentConfig, align_transcription
 from .asr import TranscriptionResult, load_asr_engine
 from .diarization import DiarizationConfig, apply_diarization
-from .export import export_transcription
+from .export import export_json_file, export_transcription
 from .ingest import IngestionConfig, IngestionError, ingest_audio
 from .vad import load_vad_backend
+from . import __version__
 
 LOG_FORMAT = "[%(levelname)s] %(message)s"
+
+
+def _serialise_value(value: Any) -> Any:
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, list):
+        return [_serialise_value(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_serialise_value(item) for item in value)
+    if isinstance(value, dict):
+        return {key: _serialise_value(val) for key, val in value.items()}
+    return value
+
+
+def _resolve_output_base(destination: Path) -> tuple[Path, str]:
+    base_path = Path(destination)
+    if base_path.suffix:
+        return base_path.parent, base_path.stem
+    stem = base_path.name or "transcript"
+    return base_path, stem
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -103,10 +125,37 @@ def main(argv: Optional[List[str]] = None) -> None:
         diarization_config = DiarizationConfig(mode=args.diarize, pyannote_token=args.pyannote_token)
         transcription = apply_diarization(transcription, ingestion_result.audio_path, diarization_config)
 
+        raw_transcription = deepcopy(transcription)
+
+        pipeline_metadata = {key: _serialise_value(value) for key, value in vars(args).items()}
+        ingestion_metadata = {
+            "audio_path": str(ingestion_result.audio_path),
+            "source_path": str(ingestion_result.source_path),
+            "workdir": str(ingestion_result.workdir),
+            "cleanup_enabled": ingestion_result.cleanup_enabled,
+        }
+        software_metadata = {"oratiotranscripta": __version__}
+
+        for result in (transcription, raw_transcription):
+            metadata = dict(result.metadata)
+            metadata.update(
+                {
+                    "pipeline": pipeline_metadata,
+                    "ingestion": ingestion_metadata,
+                    "software": software_metadata,
+                }
+            )
+            result.metadata = metadata
+
         aggregation_config = AggregationConfig(window=args.window)
         transcription.segments = aggregate_segments(transcription.segments, aggregation_config)
 
         exported = export_transcription(transcription, args.out, args.export)
+
+        base_dir, stem = _resolve_output_base(args.out)
+        raw_json_path = export_json_file(raw_transcription, base_dir / f"{stem}.raw.json")
+        exported.append(raw_json_path)
+
         for path in exported:
             logger.info("Arquivo exportado: %s", path)
     finally:

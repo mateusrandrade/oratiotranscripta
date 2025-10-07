@@ -44,6 +44,15 @@ def export_transcription(
     return exported
 
 
+def export_json_file(result: TranscriptionResult, path: Path) -> Path:
+    """Export ``result`` to ``path`` as JSON."""
+
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    _export_json(result, target)
+    return target
+
+
 def _export_txt(result: TranscriptionResult, path: Path) -> None:
     lines = [f"# language: {result.language or 'unknown'}"]
     for key, value in sorted(result.metadata.items()):
@@ -107,4 +116,4 @@ def _format_timestamp(seconds: float, *, for_srt: bool = False, for_vtt: bool = 
     return f"{hours:02}:{minutes:02}:{secs:02}.{millis:03}"
 
 
-__all__ = ["export_transcription"]
+__all__ = ["export_transcription", "export_json_file"]

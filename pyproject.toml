@@ -52,6 +52,7 @@ all = [
 
 [project.scripts]
 oratiotranscripta = "oratiotranscripta.cli:main"
+oratiotranscripta-annotate = "oratiotranscripta.annotate:main"
 
 [tool.setuptools.packages.find]
 include = ["oratiotranscripta*"]

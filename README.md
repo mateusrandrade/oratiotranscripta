@@ -27,8 +27,8 @@ O **Oratio Transcripta** é uma proposta de valorização da palavra, da histór
 - **Alinhamento opcional**: integração com WhisperX para produzir timestamps de palavras de alta precisão.
 - **Diarização**: heurísticas básicas de energia/pausa ou pipeline pré-treinado do `pyannote.audio` (requer token HF).
 - **Agregação flexível**: preserva segmentos originais ou gera blocos temporais fixos (`--window`) adequados para legendas.
-- **Exportação rica**: gera `.txt`, `.srt`, `.vtt` e `.json` com metadados de speakers, confidences e timestamps.
-  - O Estágio A do pipeline agora também grava um arquivo `<stem>.raw.json` contendo os segmentos originais antes da agregação (`aggregate_segments`).
+- **Exportação**: gera `.txt`, `.srt`, `.vtt` e `.json` com metadados de locutores, grau de confiança e carimbos de data/hora.
+  - O Estágio A do pipeline também grava um arquivo `<stem>.raw.json` contendo os segmentos originais antes da agregação (`aggregate_segments`).
   - O campo `metadata` dos JSONs agrega informações sobre a execução (`pipeline`), artefatos de ingestão (`ingestion`) e versão do software (`software`).
 
 ## Perfis de uso recomendados

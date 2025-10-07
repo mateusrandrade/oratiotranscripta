@@ -6,7 +6,15 @@ import argparse
 import json
 import logging
 from pathlib import Path
+from collections import Counter
 from typing import Any, Dict, Iterable, List, Optional
+
+try:  # pragma: no cover - import guard
+    import yaml
+except ImportError:  # pragma: no cover - fallback when dependency is absent
+    yaml = None  # type: ignore[assignment]
+
+from .metadata import DatasetMetadata
 
 LOG_FORMAT = "[%(levelname)s] %(message)s"
 
@@ -108,13 +116,28 @@ def _ensure_mapping(value: Any) -> Dict[str, Any]:
     return {"text": str(value)}
 
 
-def _load_metadata(path: Optional[Path]) -> Dict[str, Any]:
+def _load_metadata(path: Optional[Path]) -> Optional[DatasetMetadata]:
     if path is None:
-        return {}
-    data = _load_json_file(path)
+        return None
+    text = path.read_text(encoding="utf-8")
+    if yaml is not None:
+        try:
+            data = yaml.safe_load(text) if text.strip() else {}
+        except yaml.YAMLError as exc:  # pragma: no cover - depende da lib externa
+            raise ValueError(f"Falha ao ler metadados: {exc}") from exc
+    else:
+        try:
+            data = json.loads(text) if text.strip() else {}
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "Falha ao ler metadados: instale PyYAML para suporte completo a YAML"
+            ) from exc
     if not isinstance(data, dict):
-        raise ValueError("Metadados devem ser um objeto JSON")
-    return data
+        raise ValueError("Metadados devem ser um objeto mapeável")
+    try:
+        return DatasetMetadata.from_mapping(data)
+    except ValueError as exc:
+        raise ValueError(f"Metadados inválidos: {exc}") from exc
 
 
 def _load_raw_transcription(path: Optional[Path]) -> Optional[Dict[str, Any]]:
@@ -145,6 +168,35 @@ def _write_jsonl(path: Optional[Path], records: Iterable[Dict[str, Any]]) -> Non
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _compute_metrics(
+    segments: List[Dict[str, Any]], metadata: Optional[DatasetMetadata]
+) -> Dict[str, Any]:
+    starts: List[float] = []
+    ends: List[float] = []
+    counts: Counter[str] = Counter()
+    for segment in segments:
+        start = segment.get("start")
+        end = segment.get("end")
+        if isinstance(start, (int, float)):
+            starts.append(float(start))
+        if isinstance(end, (int, float)):
+            ends.append(float(end))
+        speaker = segment.get("speaker")
+        if speaker:
+            canonical = metadata.resolve_speaker(speaker) if metadata else str(speaker)
+            counts[canonical] += 1
+    duration: Optional[float] = None
+    if starts and ends:
+        duration = max(ends) - min(starts)
+    metrics: Dict[str, Any] = {
+        "segment_count": len(segments),
+        "utterances_per_participant": dict(counts),
+    }
+    if duration is not None:
+        metrics["duration_seconds"] = duration
+    return metrics
+
+
 def _append_manifest(
     manifest_path: Optional[Path],
     *,
@@ -154,6 +206,7 @@ def _append_manifest(
     segments: int,
     metadata_path: Optional[Path],
     raw_path: Optional[Path],
+    metrics: Dict[str, Any],
 ) -> None:
     if manifest_path is None:
         return
@@ -168,6 +221,8 @@ def _append_manifest(
         entry["metadata"] = str(metadata_path)
     if raw_path:
         entry["raw_json"] = str(raw_path)
+    if metrics:
+        entry["metrics"] = metrics
     with manifest_path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
@@ -194,17 +249,33 @@ def main(argv: Optional[List[str]] = None) -> None:
         parser.error(str(exc))
         return
 
+    speaker_names = {
+        segment.get("speaker")
+        for segment in segments
+        if isinstance(segment, dict) and segment.get("speaker")
+    }
+    if metadata is not None:
+        try:
+            metadata.validate_speakers(speaker_names)
+        except ValueError as exc:
+            parser.error(str(exc))
+            return
+
+    metrics = _compute_metrics(segments, metadata)
+
     if args.format == "json":
         payload: Dict[str, Any] = {
             "segments": segments,
-            "metadata": metadata,
+            "metadata": metadata.to_dict() if metadata else {},
         }
         if raw_transcription is not None:
             payload["raw_transcription"] = raw_transcription
         payload["source"] = str(args.transcript)
         _write_json(args.out, payload)
     else:
-        base_record: Dict[str, Any] = {"metadata": metadata}
+        base_record: Dict[str, Any] = {
+            "metadata": metadata.to_dict() if metadata else {}
+        }
         if raw_transcription is not None:
             base_record["raw_transcription"] = raw_transcription
         records = []
@@ -222,6 +293,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         segments=len(segments),
         metadata_path=args.metadata,
         raw_path=args.raw_json,
+        metrics=metrics,
     )
 
     logger.info("Exportação concluída (%d segmentos)", len(segments))

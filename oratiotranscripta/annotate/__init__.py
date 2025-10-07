@@ -14,6 +14,13 @@ try:  # pragma: no cover - import guard
 except ImportError:  # pragma: no cover - fallback when dependency is absent
     yaml = None  # type: ignore[assignment]
 
+from .jsonl import build_records
+from .manifest import (
+    build_manifest,
+    build_normalised_metadata,
+    write_manifest,
+    write_metadata_yaml,
+)
 from .metadata import DatasetMetadata
 
 LOG_FORMAT = "[%(levelname)s] %(message)s"
@@ -197,34 +204,48 @@ def _compute_metrics(
     return metrics
 
 
-def _append_manifest(
+def _write_manifest_bundle(
     manifest_path: Optional[Path],
     *,
     output_path: Optional[Path],
     transcript_path: Path,
     output_format: str,
-    segments: int,
-    metadata_path: Optional[Path],
+    metadata: Optional[DatasetMetadata],
     raw_path: Optional[Path],
     metrics: Dict[str, Any],
 ) -> None:
     if manifest_path is None:
         return
+
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    entry = {
-        "transcript": str(transcript_path),
-        "output": str(output_path) if output_path else "-",
-        "format": output_format,
-        "segments": segments,
-    }
-    if metadata_path:
-        entry["metadata"] = str(metadata_path)
-    if raw_path:
-        entry["raw_json"] = str(raw_path)
-    if metrics:
-        entry["metrics"] = metrics
-    with manifest_path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    metadata_file: Optional[Path] = None
+    if metadata is not None:
+        metadata_file = manifest_path.with_name("metadata.yml")
+        payload = build_normalised_metadata(metadata, metrics=metrics)
+        write_metadata_yaml(metadata_file, payload)
+
+    jsonl_path = output_path if output_path and output_format == "jsonl" else None
+    manifest = build_manifest(
+        metadata=metadata,
+        metrics=metrics,
+        tei_path=None,
+        jsonl_path=jsonl_path,
+        metadata_path=metadata_file,
+        raw_path=raw_path,
+        pipeline={
+            "exporter": "oratiotranscripta-annotate",
+            "format": output_format,
+            "source": str(transcript_path),
+        },
+        editing={
+            "metadata_provided": metadata is not None,
+            "editors": metadata.editors if metadata else [],
+        },
+        checks={"metrics": metrics},
+    )
+
+    write_manifest(manifest_path, manifest)
 
 
 
@@ -273,25 +294,20 @@ def main(argv: Optional[List[str]] = None) -> None:
         payload["source"] = str(args.transcript)
         _write_json(args.out, payload)
     else:
-        base_record: Dict[str, Any] = {
-            "metadata": metadata.to_dict() if metadata else {}
-        }
-        if raw_transcription is not None:
-            base_record["raw_transcription"] = raw_transcription
-        records = []
-        for segment in segments:
-            record = dict(base_record)
-            record["segment"] = segment
-            records.append(record)
+        metadata_payload = metadata.to_dict() if metadata else None
+        records = build_records(
+            segments,
+            metadata=metadata_payload,
+            raw_transcription=raw_transcription,
+        )
         _write_jsonl(args.out, records)
 
-    _append_manifest(
+    _write_manifest_bundle(
         args.manifest,
         output_path=args.out,
         transcript_path=args.transcript,
         output_format=args.format,
-        segments=len(segments),
-        metadata_path=args.metadata,
+        metadata=metadata,
         raw_path=args.raw_json,
         metrics=metrics,
     )

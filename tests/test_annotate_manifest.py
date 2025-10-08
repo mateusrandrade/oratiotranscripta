@@ -40,8 +40,8 @@ def test_build_manifest_and_metadata_bundle(tmp_path):
     jsonl_path = tmp_path / "transcript.jsonl"
     jsonl_path.write_text("{}\n", encoding="utf-8")
 
-    raw_path = tmp_path / "raw.json"
-    raw_path.write_text("{}", encoding="utf-8")
+    raw_path = tmp_path / "raw_segments.jsonl"
+    raw_path.write_text("{}\n", encoding="utf-8")
 
     metadata_payload = build_normalised_metadata(metadata, metrics=metrics)
     metadata_file = tmp_path / "metadata.yml"
@@ -71,14 +71,14 @@ def test_build_manifest_and_metadata_bundle(tmp_path):
     assert written_manifest["dataset"]["metrics"] == metrics
 
     files = written_manifest["files"]
-    for key in ("tei", "jsonl", "metadata", "raw"):
+    for key in ("tei", "jsonl", "metadata", "raw_segments"):
         assert key in files
         described = files[key]
         expected_path = {
             "tei": tei_path,
             "jsonl": jsonl_path,
             "metadata": metadata_file,
-            "raw": raw_path,
+            "raw_segments": raw_path,
         }[key]
         assert described["path"] == str(expected_path)
         assert described["size"] == expected_path.stat().st_size

@@ -74,11 +74,12 @@ def build_manifest(
         manifest["dataset"].setdefault("metrics", {}).update(dict(metrics))
 
     files_section: Dict[str, Any] = {}
+    raw_key = "raw_segments" if raw_path and raw_path.suffix.lower() == ".jsonl" else "raw"
     file_entries = {
         "tei": _describe_file(tei_path),
         "jsonl": _describe_file(jsonl_path),
         "metadata": _describe_file(metadata_path),
-        "raw": _describe_file(raw_path),
+        raw_key: _describe_file(raw_path),
     }
     for key, description in file_entries.items():
         if description:

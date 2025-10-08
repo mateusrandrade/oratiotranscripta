@@ -139,6 +139,7 @@ JSON/JSONL padronizados com identificadores estáveis. A ferramenta aceita trans
 - `--transcript` aponta para o arquivo revisado.
 - `--format auto|txt|srt|vtt|json|jsonl` controla a detecção do formato. O padrão `auto` identifica pelo sufixo do arquivo.
 - `--export-format json|jsonl` define o formato de saída (padrão: `jsonl`).
+- `--raw-json` deve apontar para o arquivo `*.raw_segments.jsonl` gerado no estágio A para que o estágio B preserve os vínculos com os segmentos originais.
 
 Exemplo:
 

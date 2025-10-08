@@ -284,10 +284,20 @@ def _collect_words(
         return []
     collected: List[WordMetadata] = []
     for segment_id in utterance.segments:
-        for word in word_index.get(segment_id, ()):  # type: ignore[call-arg]
+        candidates = _lookup_words(word_index, segment_id)
+        for word in candidates:
             collected.append(word)
     collected.sort(key=lambda item: (_word_sort_key(item.start), _word_sort_key(item.end)))
     return collected
+
+
+def _lookup_words(word_index: WordIndex, segment_id: int) -> Sequence[WordMetadata]:
+    if segment_id in word_index:
+        return word_index[segment_id]
+    str_key = str(segment_id)
+    if str_key in word_index:  # type: ignore[operator]
+        return word_index[str_key]  # type: ignore[index]
+    return word_index.get(segment_id, ())  # type: ignore[call-arg]
 
 
 def _word_sort_key(value: Optional[float]) -> Tuple[int, float]:

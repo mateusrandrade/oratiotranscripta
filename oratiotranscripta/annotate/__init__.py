@@ -7,7 +7,7 @@ import json
 import logging
 from pathlib import Path
 from collections import Counter
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Mapping
 
 try:  # pragma: no cover - import guard
     import yaml
@@ -272,6 +272,39 @@ def _write_jsonl(path: Optional[Path], records: Iterable[Dict[str, Any]]) -> Non
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _segment_speaker_label(segment: Mapping[str, Any]) -> Optional[str]:
+    def _coerce(value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            text = value.strip()
+            return text or None
+        text = str(value).strip()
+        return text or None
+
+    speaker = segment.get("speaker")
+    fallback: Optional[str] = None
+    if isinstance(speaker, Mapping):
+        for key in ("name", "label", "display", "text"):
+            candidate = _coerce(speaker.get(key))
+            if candidate:
+                return candidate
+        fallback = _coerce(
+            speaker.get("id") or speaker.get("speaker_id") or speaker.get("spk_id")
+        )
+    else:
+        direct = _coerce(speaker)
+        if direct:
+            return direct
+
+    for key in ("speaker_name", "speaker_label", "speaker_id", "spk_id"):
+        candidate = _coerce(segment.get(key))
+        if candidate:
+            return candidate
+
+    return fallback
+
+
 def _compute_metrics(
     segments: List[Dict[str, Any]], metadata: Optional[DatasetMetadata]
 ) -> Dict[str, Any]:
@@ -285,9 +318,9 @@ def _compute_metrics(
             starts.append(float(start))
         if isinstance(end, (int, float)):
             ends.append(float(end))
-        speaker = segment.get("speaker")
+        speaker = _segment_speaker_label(segment)
         if speaker:
-            canonical = metadata.resolve_speaker(speaker) if metadata else str(speaker)
+            canonical = metadata.resolve_speaker(speaker) if metadata else speaker
             counts[canonical] += 1
     duration: Optional[float] = None
     if starts and ends:
@@ -368,9 +401,11 @@ def main(argv: Optional[List[str]] = None) -> None:
         return
 
     speaker_names = {
-        segment.get("speaker")
+        name
         for segment in segments
-        if isinstance(segment, dict) and segment.get("speaker")
+        if isinstance(segment, dict)
+        for name in [_segment_speaker_label(segment)]
+        if name
     }
     if metadata is not None:
         try:

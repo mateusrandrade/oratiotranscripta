@@ -43,8 +43,13 @@ def test_validate_speakers_raises_for_unknown(metadata_tmp: Path) -> None:
 def test_compute_metrics_uses_canonical_names(metadata_tmp: Path) -> None:
     metadata = DatasetMetadata.from_mapping(json.loads(metadata_tmp.read_text(encoding="utf-8")))
     segments = [
-        {"speaker": "M.", "start": 0.0, "end": 2.0},
-        {"speaker": "João", "start": 2.0, "end": 4.5},
+        {"speaker": {"id": "spk0", "name": "M."}, "start": 0.0, "end": 2.0},
+        {
+            "speaker": {"id": "spk1"},
+            "speaker_name": "João",
+            "start": 2.0,
+            "end": 4.5,
+        },
     ]
     metrics = _compute_metrics(segments, metadata)
     assert metrics["segment_count"] == 2

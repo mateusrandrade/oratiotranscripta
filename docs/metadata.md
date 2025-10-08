@@ -51,3 +51,22 @@ Ao exportar uma anotação, o comando calcula métricas a partir da transcriçã
 - `utterances_per_participant`: contagem de falas por participante (utilizando o nome canônico definido nos metadados).
 
 Essas métricas ficam disponíveis no manifesto (`--manifest`) em um campo `metrics` para consumo posterior.
+
+## Formato JSONL de segmentos
+
+As exportações em JSONL produzem um registro por fala com campos enxutos:
+
+- `utt_id`: identificador sequencial estável (`utt-0001`, `utt-0002`, ...).
+- `start` e `end`: timestamps em segundos quando disponíveis.
+- `duration_sec`: duração pré-calculada da fala (se `start` e `end` existirem).
+- `text`: conteúdo textual revisado.
+- `speaker`: objeto opcional com `id` (identificador interno ou diarização) e `name` (nome canônico apresentado nos metadados).
+- `orig`: objeto opcional com referências ao material de origem. Contém `segment_ids` (IDs dos segmentos brutos utilizados na edição) e, quando fornecido, `spk_ids` (identificadores de locutores provenientes da diarização).
+
+Exemplo de linha JSONL:
+
+```json
+{"utt_id": "utt-0001", "start": 2.0, "end": 3.5, "duration_sec": 1.5, "speaker": {"id": "spkA", "name": "Ana"}, "text": "Olá, mundo", "orig": {"segment_ids": [12, 13], "spk_ids": ["SPEAKER_00"]}}
+```
+
+Metadados globais (projeto, participantes, etc.) e diagnósticos adicionais agora residem exclusivamente no manifesto exportado, mantendo o JSONL focado nos conteúdos mínimos de cada fala.

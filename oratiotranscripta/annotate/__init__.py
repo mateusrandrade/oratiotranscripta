@@ -211,10 +211,46 @@ def _load_metadata(path: Optional[Path]) -> Optional[DatasetMetadata]:
 def _load_raw_transcription(path: Optional[Path]) -> Optional[Dict[str, Any]]:
     if path is None:
         return None
+
+    suffix = path.suffix.lower()
+    if suffix == ".jsonl":
+        segments: Dict[str, Any] = {}
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                record = json.loads(stripped)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Linha {line_number} de {path.name} contém JSON inválido"
+                ) from exc
+            if not isinstance(record, dict):
+                raise ValueError(
+                    f"Linha {line_number} de {path.name} deve conter um objeto JSON"
+                )
+            segment_id = record.get("segment_id")
+            if segment_id is None:
+                raise ValueError(
+                    f"Linha {line_number} de {path.name} não possui 'segment_id'"
+                )
+            key = _normalise_segment_id(segment_id)
+            segments[str(key)] = record
+        return {"segments": segments, "source": str(path)}
+
     data = _load_json_file(path)
     if not isinstance(data, dict):
         raise ValueError("Transcrição bruta deve ser um objeto JSON")
     return data
+
+
+def _normalise_segment_id(value: Any) -> Any:
+    if isinstance(value, (int, float)):
+        return int(value)
+    text = str(value).strip()
+    if text.isdigit():
+        return int(text)
+    return text
 
 
 def _write_json(path: Optional[Path], payload: Dict[str, Any]) -> None:

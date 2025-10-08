@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 from copy import deepcopy
+from datetime import datetime
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -13,7 +14,9 @@ from .alignment import AlignmentConfig, align_transcription
 from .asr import TranscriptionResult, load_asr_engine
 from .diarization import DiarizationConfig, apply_diarization
 from .export import export_json_file, export_transcription
+from .export.jsonl import write_raw_segments_jsonl, write_raw_words_jsonl
 from .ingest import IngestionConfig, IngestionError, ingest_audio
+from .provenance import write_run_manifest
 from .vad import load_vad_backend
 from . import __version__
 
@@ -72,6 +75,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--words", action="store_true", help="Exporta metadados de palavras quando suportado")
     parser.add_argument("--keep-temp", action="store_true", help="Mantém diretórios temporários gerados")
     parser.add_argument("--verbose", action="store_true", help="Mostra logs detalhados")
+    parser.add_argument("--run-id", help="Identificador do processamento (timestamp por padrão)")
+    parser.add_argument(
+        "--export-json-raw",
+        action="store_true",
+        help="Gera arquivo JSONL com segmentos brutos antes da agregação",
+    )
+    parser.add_argument(
+        "--export-json-words",
+        action="store_true",
+        help="Gera arquivo JSONL com metadados de palavras reconhecidas",
+    )
+    parser.add_argument(
+        "--manifest",
+        action="store_true",
+        help="Escreve run_manifest.json com metadados de proveniência",
+    )
     return parser
 
 
@@ -79,7 +98,21 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format=LOG_FORMAT)
+    run_id = args.run_id or datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+
+    base_dir, stem = _resolve_output_base(args.out)
+    out_dir = base_dir / run_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir = out_dir / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
+    log_file_path = logs_dir / "pipeline.log"
+    handlers = [logging.StreamHandler(), logging.FileHandler(log_file_path, encoding="utf-8")]
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format=LOG_FORMAT,
+        handlers=handlers,
+    )
     logger = logging.getLogger("oratiotranscripta")
     logger.info("Iniciando pipeline de transcrição")
 
@@ -126,12 +159,15 @@ def main(argv: Optional[List[str]] = None) -> None:
         transcription = apply_diarization(transcription, ingestion_result.audio_path, diarization_config)
 
         raw_transcription = deepcopy(transcription)
+        raw_segments = deepcopy(transcription.segments)
 
         pipeline_metadata = {key: _serialise_value(value) for key, value in vars(args).items()}
+        pipeline_metadata["run_id"] = run_id
+        pipeline_metadata["output_dir"] = str(out_dir)
         ingestion_metadata = {
-            "audio_path": str(ingestion_result.audio_path),
-            "source_path": str(ingestion_result.source_path),
-            "workdir": str(ingestion_result.workdir),
+            "audio_path": str(ingestion_result.audio_path) if ingestion_result.audio_path else None,
+            "source_path": str(ingestion_result.source_path) if ingestion_result.source_path else None,
+            "workdir": str(ingestion_result.workdir) if ingestion_result.workdir else None,
             "cleanup_enabled": ingestion_result.cleanup_enabled,
         }
         software_metadata = {"oratiotranscripta": __version__}
@@ -150,11 +186,42 @@ def main(argv: Optional[List[str]] = None) -> None:
         aggregation_config = AggregationConfig(window=args.window)
         transcription.segments = aggregate_segments(transcription.segments, aggregation_config)
 
-        exported = export_transcription(transcription, args.out, args.export)
+        exported = export_transcription(transcription, out_dir / stem, args.export)
 
-        base_dir, stem = _resolve_output_base(args.out)
-        raw_json_path = export_json_file(raw_transcription, base_dir / f"{stem}.raw.json")
+        raw_json_path = export_json_file(raw_transcription, out_dir / f"{stem}.raw.json")
         exported.append(raw_json_path)
+
+        if args.export_json_raw:
+            raw_segments_path = write_raw_segments_jsonl(
+                out_dir / f"{stem}.raw_segments.jsonl",
+                raw_segments,
+                metadata=raw_transcription.metadata,
+                language=raw_transcription.language,
+            )
+            exported.append(raw_segments_path)
+
+        if args.export_json_words:
+            raw_words_path = write_raw_words_jsonl(
+                out_dir / f"{stem}.raw_words.jsonl",
+                raw_segments,
+                metadata=raw_transcription.metadata,
+                language=raw_transcription.language,
+            )
+            if raw_words_path is not None:
+                exported.append(raw_words_path)
+
+        manifest_path = None
+        if args.manifest:
+            manifest_path = write_run_manifest(
+                out_dir,
+                run_id=run_id,
+                pipeline=pipeline_metadata,
+                ingestion=ingestion_metadata,
+                software=software_metadata,
+                artifacts=exported,
+                log_files=[log_file_path],
+            )
+            exported.append(manifest_path)
 
         for path in exported:
             logger.info("Arquivo exportado: %s", path)

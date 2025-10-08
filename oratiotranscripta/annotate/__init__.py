@@ -25,6 +25,7 @@ from .manifest import (
 from .metadata import DatasetMetadata
 
 LOG_FORMAT = "[%(levelname)s] %(message)s"
+SENTINEL = object()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -71,8 +72,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--manifest",
+        nargs="?",
+        const=SENTINEL,
         type=Path,
-        help="Arquivo JSONL onde o manifesto da exportação será registrado",
+        metavar="PATH",
+        help=(
+            "Gera manifesto FAIR. Use --manifest PATH para definir o destino; "
+            "sem PATH, o arquivo é derivado automaticamente"
+        ),
     )
     parser.add_argument(
         "--verbose",
@@ -334,6 +341,31 @@ def _compute_metrics(
     return metrics
 
 
+def _resolve_manifest_path(args: argparse.Namespace) -> Optional[Path]:
+    """Resolve o caminho final do manifesto a partir dos argumentos da CLI."""
+
+    manifest = getattr(args, "manifest", None)
+    if manifest is None:
+        return None
+
+    if manifest is SENTINEL:
+        out_path = getattr(args, "out", None)
+        if isinstance(out_path, Path) and str(out_path) != "-":
+            if out_path.is_dir():
+                return out_path / "manifest.json"
+            return out_path.with_suffix(".manifest.json")
+
+        transcript_path = getattr(args, "transcript", None)
+        if isinstance(transcript_path, Path) and str(transcript_path) != "-":
+            if transcript_path.is_dir():
+                return transcript_path / "manifest.json"
+            return transcript_path.with_suffix(".manifest.json")
+
+        return Path.cwd() / "manifest.json"
+
+    return manifest
+
+
 def _write_manifest_bundle(
     manifest_path: Optional[Path],
     *,
@@ -434,8 +466,10 @@ def main(argv: Optional[List[str]] = None) -> None:
         )
         _write_jsonl(args.out, records)
 
+    manifest_path = _resolve_manifest_path(args)
+
     _write_manifest_bundle(
-        args.manifest,
+        manifest_path,
         output_path=args.out,
         transcript_path=args.transcript,
         output_format=args.export_format,

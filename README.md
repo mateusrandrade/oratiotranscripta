@@ -140,6 +140,9 @@ JSON/JSONL padronizados com identificadores estáveis. A ferramenta aceita trans
 - `--format auto|txt|srt|vtt|json|jsonl` controla a detecção do formato. O padrão `auto` identifica pelo sufixo do arquivo.
 - `--export-format json|jsonl` define o formato de saída (padrão: `jsonl`).
 - `--raw-json` deve apontar para o arquivo `*.raw_segments.jsonl` gerado no estágio A para que o estágio B preserve os vínculos com os segmentos originais.
+- `--manifest [PATH]` grava um manifesto FAIR. Sem `PATH`, o arquivo é criado automaticamente a partir de `--out` (ou, na ausência dele, ao lado da transcrição revisada; se ambos forem `-`, cai para `./manifest.json`).
+
+> **Nota:** a exportação de TEI/XML continua disponível apenas via API Python (`oratiotranscripta.annotate.tei`).
 
 Exemplo:
 
@@ -149,8 +152,11 @@ python -m oratiotranscripta.annotate \
   --format auto \
   --metadata ./edited/entrevista.yml \
   --export-format jsonl \
-  --out ./edited/entrevista.annotated.jsonl
+  --out ./edited/entrevista.annotated.jsonl \
+  --manifest
 ```
+
+O comando acima gera `./edited/entrevista.annotated.jsonl` e, automaticamente, `./edited/entrevista.annotated.manifest.json` com hashes, métricas e referências aos insumos utilizados.
 
 ## Desenvolvimento
 

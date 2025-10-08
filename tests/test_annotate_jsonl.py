@@ -1,6 +1,8 @@
 from pathlib import Path
 import sys
 
+import pytest
+
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -10,39 +12,55 @@ from oratiotranscripta.annotate.jsonl import build_records
 
 def test_build_records_orders_segments_and_adds_ids():
     segments = [
-        {"start": 5.0, "text": "later", "speaker": "B", "segments": [2]},
-        {"start": 2.0, "text": "early", "speaker": "A", "segments": [1]},
-        {"text": "no timing", "segments": [3, 4]},
+        {
+            "start": 5.0,
+            "end": 7.0,
+            "text": "later",
+            "speaker": "B",
+            "segments": [2],
+            "spk_ids": ["spk-002"],
+        },
+        {
+            "start": 2.0,
+            "end": 3.5,
+            "text": "early",
+            "speaker": {"id": "spkA", "name": "Speaker A"},
+            "segments": [1],
+        },
+        {
+            "text": "no timing",
+            "segments": [3, 4],
+            "orig": {"spk_ids": ["x1"]},
+        },
     ]
-
-    raw_index = {
-        "segments": {
-            "1": {"segment_id": 1, "text": "first"},
-            "2": {"segment_id": 2, "text": "second"},
-            "3": {"segment_id": 3, "text": "third"},
-            "4": {"segment_id": 4, "text": "fourth"},
-        }
-    }
 
     records = build_records(
         segments,
         metadata={"project": "X"},
-        raw_transcription=raw_index,
+        raw_transcription={"segments": {}},
     )
 
-    assert [record["id"] for record in records] == ["utt-0001", "utt-0002", "utt-0003"]
-    assert [record["segment_index"] for record in records] == [2, 1, 3]
-    assert [record["segment"]["text"] for record in records] == [
-        "early",
-        "later",
-        "no timing",
-    ]
-    assert records[0]["metadata"]["project"] == "X"
-    assert "raw_transcription" in records[0]
-    first_orig = records[0]["segment"]["orig"]
-    assert first_orig["segment_ids"] == [1]
-    assert first_orig["segments"][0]["text"] == "first"
-    assert "segments" not in records[0]["segment"]
+    assert [record["utt_id"] for record in records] == ["utt-0001", "utt-0002", "utt-0003"]
+    assert [record["text"] for record in records] == ["early", "later", "no timing"]
+    assert all("metadata" not in record for record in records)
+    assert all("segment_index" not in record for record in records)
+
+    first = records[0]
+    assert first["start"] == pytest.approx(2.0)
+    assert first["end"] == pytest.approx(3.5)
+    assert first["duration_sec"] == pytest.approx(1.5)
+    assert first["speaker"] == {"id": "spkA", "name": "Speaker A"}
+    assert first["orig"]["segment_ids"] == [1]
+    assert "spk_ids" not in first["orig"]
+
+    second = records[1]
+    assert second["speaker"] == {"id": None, "name": "B"}
+    assert second["orig"] == {"segment_ids": [2], "spk_ids": ["spk-002"]}
+
+    third = records[2]
+    assert "start" not in third
+    assert "speaker" not in third
+    assert third["orig"] == {"segment_ids": [3, 4], "spk_ids": ["x1"]}
 
 
 def test_load_raw_transcription_from_jsonl(tmp_path):

@@ -320,7 +320,7 @@ def _write_manifest_bundle(
     if metadata is not None:
         metadata_file = manifest_path.with_name("metadata.yml")
         payload = build_normalised_metadata(metadata, metrics=metrics)
-        write_metadata_yaml(metadata_file, payload)
+        metadata_file = write_metadata_yaml(metadata_file, payload)
 
     jsonl_path = output_path if output_path and output_format == "jsonl" else None
     manifest = build_manifest(

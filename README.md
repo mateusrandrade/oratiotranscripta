@@ -28,8 +28,10 @@ O **Oratio Transcripta** é uma proposta de valorização da palavra, da histór
 - **Diarização**: heurísticas básicas de energia/pausa ou pipeline pré-treinado do `pyannote.audio` (requer token HF).
 - **Agregação flexível**: preserva segmentos originais ou gera blocos temporais fixos (`--window`) adequados para legendas.
 - **Exportação**: gera `.txt`, `.srt`, `.vtt` e `.json` com metadados de locutores, grau de confiança e carimbos de data/hora.
-  - O Estágio A do pipeline também grava um arquivo `<stem>.raw.json` contendo os segmentos originais antes da agregação (`aggregate_segments`).
+  - Cada execução cria um diretório isolado `output/<run_id>/` contendo os arquivos solicitados, além de uma cópia `<stem>.raw.json` com os segmentos originais antes da agregação (`aggregate_segments`).
+  - Flags opcionais permitem exportar metadados detalhados em JSONL: `--export-json-raw` grava `<stem>.raw_segments.jsonl` e `--export-json-words` registra `<stem>.raw_words.jsonl` (quando timestamps de palavras estiverem disponíveis).
   - O campo `metadata` dos JSONs agrega informações sobre a execução (`pipeline`), artefatos de ingestão (`ingestion`) e versão do software (`software`).
+  - Use `--manifest` para gerar um `run_manifest.json` com proveniência (configurações, hashes de arquivos, ambiente e commit Git) e acesse os logs estruturados em `logs/pipeline.log` dentro do diretório da execução.
 
 ## Perfis de uso recomendados
 
@@ -96,6 +98,10 @@ Opções principais:
 | `--words` | Solicita metadados de palavras quando suportado pelo modelo ASR. |
 | `--keep-temp` | Mantém diretórios temporários gerados. |
 | `--verbose` | Ativa logs detalhados. |
+| `--run-id ID` | Define o identificador do processamento (timestamp UTC por padrão). |
+| `--export-json-raw` | Exporta segmentos brutos pré-agregação em JSONL. |
+| `--export-json-words` | Exporta palavras reconhecidas em JSONL (quando disponíveis). |
+| `--manifest` | Grava `run_manifest.json` com proveniência, hashes e ambiente. |
 
 ### Exemplo
 

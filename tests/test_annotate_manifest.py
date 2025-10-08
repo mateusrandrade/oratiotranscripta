@@ -1,4 +1,5 @@
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
@@ -45,7 +46,7 @@ def test_build_manifest_and_metadata_bundle(tmp_path):
 
     metadata_payload = build_normalised_metadata(metadata, metrics=metrics)
     metadata_file = tmp_path / "metadata.yml"
-    write_metadata_yaml(metadata_file, metadata_payload)
+    metadata_file = write_metadata_yaml(metadata_file, metadata_payload)
 
     manifest = build_manifest(
         metadata=metadata,
@@ -85,7 +86,18 @@ def test_build_manifest_and_metadata_bundle(tmp_path):
         expected_hash = hashlib.sha256(expected_path.read_bytes()).hexdigest()
         assert described["sha256"] == expected_hash
 
-    loaded_metadata = json.loads(metadata_file.read_text(encoding="utf-8"))
+    metadata_text = metadata_file.read_text(encoding="utf-8")
+    assert "Coleção Teste" in metadata_text
+
+    if importlib.util.find_spec("yaml") is not None:
+        import yaml  # type: ignore
+
+        assert metadata_file.suffix == ".yml"
+        loaded_metadata = yaml.safe_load(metadata_text)
+    else:
+        assert metadata_file.suffix == ".json"
+        loaded_metadata = json.loads(metadata_text)
+
     assert loaded_metadata["participant_count"] == 2
     assert loaded_metadata["statistics"]["duration_seconds"] == 3.5
     assert loaded_metadata["dates"] == ["2024-02-28", "2024-03-01"]

@@ -7,6 +7,11 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
+try:  # pragma: no cover - exercised in fallback path depending on environment
+    import yaml  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover - handled when PyYAML missing
+    yaml = None
+
 from .metadata import DatasetMetadata
 
 
@@ -95,10 +100,38 @@ def write_manifest(path: Path, manifest: Mapping[str, Any]) -> None:
     path.write_text(text + "\n", encoding="utf-8")
 
 
-def write_metadata_yaml(path: Path, metadata: Mapping[str, Any]) -> None:
+def write_metadata_yaml(path: Path, metadata: Mapping[str, Any]) -> Path:
+    """Serialise metadata to YAML when available, with JSON fallback.
+
+    Parameters
+    ----------
+    path:
+        Desired output path. When PyYAML is not installed the final file will
+        use a ``.json`` suffix irrespective of the provided value.
+    metadata:
+        Mapping to serialise.
+
+    Returns
+    -------
+    Path
+        The actual path that was written.
+    """
+
     path.parent.mkdir(parents=True, exist_ok=True)
+
+    if yaml is not None:
+        if path.suffix.lower() not in {".yml", ".yaml"}:
+            path = path.with_suffix(".yml")
+        text = yaml.safe_dump(metadata, allow_unicode=True, sort_keys=False)
+        if not text.endswith("\n"):
+            text += "\n"
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    json_path = path if path.suffix.lower() == ".json" else path.with_suffix(".json")
     text = json.dumps(metadata, ensure_ascii=False, indent=2)
-    path.write_text(text + "\n", encoding="utf-8")
+    json_path.write_text(text + "\n", encoding="utf-8")
+    return json_path
 
 
 __all__ = [

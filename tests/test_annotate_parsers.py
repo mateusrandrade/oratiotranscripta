@@ -5,6 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from oratiotranscripta.annotate import _load_transcript
 from oratiotranscripta.annotate.parsers import (
     EditedUtterance,
     parse_srt,
@@ -96,3 +97,51 @@ Speaker 2: Sim!
     assert second.speaker == "Speaker 2"
     assert second.text == "Sim!"
     assert second.segments == (3,)
+
+
+def test_load_transcript_parses_txt_file(tmp_path) -> None:
+    path = tmp_path / "edited.txt"
+    path.write_text(
+        """[00:00:00.000 -> 00:00:02.000] Speaker 1: Olá (conf=0.9)
+[00:00:02.000 -> 00:00:04.000] Speaker 1: mundo!
+[00:00:04.000 -> 00:00:05.000] Speaker 2: Tchau
+""",
+        encoding="utf-8",
+    )
+
+    segments = _load_transcript(path, format="txt")
+
+    assert [segment["utt_id"] for segment in segments] == ["utt-0001", "utt-0002"]
+    first, second = segments
+    assert first["speaker"] == "Speaker 1"
+    assert first["text"] == "Olá mundo!"
+    assert first["segments"] == [1, 2]
+    assert second["speaker"] == "Speaker 2"
+    assert second["segments"] == [3]
+
+
+def test_load_transcript_auto_detects_srt(tmp_path) -> None:
+    path = tmp_path / "edited.srt"
+    path.write_text(
+        """1
+00:00:00,000 --> 00:00:02,500
+Speaker 1: Primeira
+
+2
+00:00:02,500 --> 00:00:04,000
+Speaker 1: frase
+
+3
+00:00:04,000 --> 00:00:05,000
+Speaker 2: Final
+""",
+        encoding="utf-8",
+    )
+
+    segments = _load_transcript(path, format="auto")
+
+    assert len(segments) == 2
+    assert segments[0]["utt_id"] == "utt-0001"
+    assert segments[0]["text"] == "Primeira frase"
+    assert segments[0]["segments"] == [1, 2]
+    assert segments[1]["speaker"] == "Speaker 2"

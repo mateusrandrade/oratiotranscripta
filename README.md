@@ -130,6 +130,27 @@ python -m oratiotranscripta \
   --export txt vtt
 ```
 
+### Anotar transcrições revisadas
+
+Após revisar manualmente um arquivo exportado pela pipeline, utilize o comando `python -m oratiotranscripta.annotate` para gerar
+JSON/JSONL padronizados com identificadores estáveis. A ferramenta aceita transcrições nos formatos `.txt`, `.srt`, `.vtt`,
+`.json` e `.jsonl`.
+
+- `--transcript` aponta para o arquivo revisado.
+- `--format auto|txt|srt|vtt|json|jsonl` controla a detecção do formato. O padrão `auto` identifica pelo sufixo do arquivo.
+- `--export-format json|jsonl` define o formato de saída (padrão: `jsonl`).
+
+Exemplo:
+
+```bash
+python -m oratiotranscripta.annotate \
+  --transcript ./edited/entrevista.srt \
+  --format auto \
+  --metadata ./edited/entrevista.yml \
+  --export-format jsonl \
+  --out ./edited/entrevista.annotated.jsonl
+```
+
 ## Desenvolvimento
 
 - O pacote está organizado em submódulos (`ingest`, `vad`, `asr`, `alignment`, `diarization`, `aggregation`, `export`), permitindo substituições e extensões pontuais.

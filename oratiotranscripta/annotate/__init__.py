@@ -14,6 +14,7 @@ try:  # pragma: no cover - import guard
 except ImportError:  # pragma: no cover - fallback when dependency is absent
     yaml = None  # type: ignore[assignment]
 
+from .parsers import EditedUtterance, parse_srt, parse_txt, parse_vtt
 from .jsonl import build_records
 from .manifest import (
     build_manifest,
@@ -36,10 +37,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--transcript",
         type=Path,
         required=True,
-        help="Arquivo contendo a transcrição a ser anotada (JSON, JSONL ou texto)",
+        help="Arquivo contendo a transcrição revisada (JSON, JSONL, TXT, SRT ou VTT)",
     )
     parser.add_argument(
         "--format",
+        choices=["auto", "txt", "srt", "vtt", "json", "jsonl"],
+        default="auto",
+        help=(
+            "Formato do arquivo de transcrição revisado; use 'auto' para detectar pela "
+            "extensão"
+        ),
+    )
+    parser.add_argument(
+        "--export-format",
         choices=["json", "jsonl"],
         default="jsonl",
         help="Formato de saída desejado",
@@ -77,24 +87,57 @@ def _load_json_file(path: Path) -> Any:
     return json.loads(text)
 
 
-def _load_transcript(path: Path) -> List[Dict[str, Any]]:
+def _load_transcript(path: Path, *, format: str = "auto") -> List[Dict[str, Any]]:
+    transcript_format = _resolve_transcript_format(path, format=format)
+    if transcript_format in {"txt", "srt", "vtt"}:
+        parser = {"txt": parse_txt, "srt": parse_srt, "vtt": parse_vtt}[transcript_format]
+        content = path.read_text(encoding="utf-8")
+        utterances = parser(content)
+        return _normalise_utterances(utterances)
+    if transcript_format == "jsonl":
+        return _load_jsonl_transcript(path)
+    return _load_json_transcript(path)
+
+
+def _normalise_utterances(utterances: List[EditedUtterance]) -> List[Dict[str, Any]]:
+    normalised: List[Dict[str, Any]] = []
+    for index, utterance in enumerate(utterances, start=1):
+        normalised.append(
+            {
+                "utt_id": f"utt-{index:04d}",
+                "start": utterance.start,
+                "end": utterance.end,
+                "speaker": utterance.speaker,
+                "text": utterance.text,
+                "segments": list(utterance.segments),
+            }
+        )
+    if not normalised:
+        raise ValueError("Nenhum segmento encontrado na transcrição")
+    return normalised
+
+
+def _resolve_transcript_format(path: Path, *, format: str) -> str:
+    if format != "auto":
+        return format
+    extension = path.suffix.lower()
+    mapping = {
+        ".txt": "txt",
+        ".srt": "srt",
+        ".vtt": "vtt",
+        ".json": "json",
+        ".jsonl": "jsonl",
+    }
+    return mapping.get(extension, "json")
+
+
+def _load_json_transcript(path: Path) -> List[Dict[str, Any]]:
     try:
         data = _load_json_file(path)
-    except json.JSONDecodeError:
-        records: List[Dict[str, Any]] = []
-        for line in path.read_text(encoding="utf-8").splitlines():
-            stripped = line.strip()
-            if not stripped:
-                continue
-            try:
-                item = json.loads(stripped)
-            except json.JSONDecodeError:
-                records.append({"text": stripped})
-            else:
-                records.append(_ensure_mapping(item))
-        if not records:
-            raise ValueError("Nenhum segmento encontrado na transcrição")
-        return records
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "Falha ao carregar transcrição JSON. Use --format para especificar o formato correto"
+        ) from exc
 
     if isinstance(data, dict) and "segments" in data:
         segments = data.get("segments", [])
@@ -115,6 +158,24 @@ def _load_transcript(path: Path) -> List[Dict[str, Any]]:
     if not normalised:
         raise ValueError("Nenhum segmento encontrado na transcrição")
     return normalised
+
+
+def _load_jsonl_transcript(path: Path) -> List[Dict[str, Any]]:
+    records: List[Dict[str, Any]] = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            item = json.loads(stripped)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Linha {line_number} do JSONL contém JSON inválido"
+            ) from exc
+        records.append(_ensure_mapping(item))
+    if not records:
+        raise ValueError("Nenhum segmento encontrado na transcrição")
+    return records
 
 
 def _ensure_mapping(value: Any) -> Dict[str, Any]:
@@ -258,7 +319,7 @@ def main(argv: Optional[List[str]] = None) -> None:
 
     logger.info("Carregando transcrição de %%s", args.transcript)
     try:
-        segments = _load_transcript(args.transcript)
+        segments = _load_transcript(args.transcript, format=args.format)
     except Exception as exc:
         parser.error(str(exc))
         return
@@ -284,7 +345,7 @@ def main(argv: Optional[List[str]] = None) -> None:
 
     metrics = _compute_metrics(segments, metadata)
 
-    if args.format == "json":
+    if args.export_format == "json":
         payload: Dict[str, Any] = {
             "segments": segments,
             "metadata": metadata.to_dict() if metadata else {},
@@ -306,7 +367,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         args.manifest,
         output_path=args.out,
         transcript_path=args.transcript,
-        output_format=args.format,
+        output_format=args.export_format,
         metadata=metadata,
         raw_path=args.raw_json,
         metrics=metrics,

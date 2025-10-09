@@ -1,10 +1,10 @@
-# 🗣️ Como usar o Oratio Transcripta
+# Como usar o Oratio Transcripta
 
-Guia completo e didático para instalar, configurar e utilizar o **Oratio Transcripta** no Windows — mesmo que você **nunca tenha usado Python antes**.
+Guia completo para instalar, configurar e utilizar o **Oratio Transcripta** no Windows — mesmo que você **nunca tenha usado Python antes**.
 
 ---
 
-## 📘 O que é o Oratio Transcripta?
+## O que é o Oratio Transcripta?
 
 **Oratio Transcripta** é uma pipeline em Python para **transcrição e anotação automática de áudio e vídeo**, integrando tecnologias abertas como **Whisper**, **Pyannote**, **WebRTC** e **Silero**.
 
@@ -12,7 +12,7 @@ Ela permite transformar gravações de entrevistas, aulas, palestras ou vídeos 
 
 ---
 
-## 🧩 Requisitos básicos
+## Requisitos básicos
 
 | Componente | Função | Onde obter |
 |-------------|--------|-------------|
@@ -23,11 +23,11 @@ Ela permite transformar gravações de entrevistas, aulas, palestras ou vídeos 
 | **(Opcional) GPU NVIDIA** | Aceleração de processamento | Drivers atualizados |
 | **(Opcional) Conta na Hugging Face** | Requerida para modelos `pyannote` | [huggingface.co](https://huggingface.co) |
 
-> 💡 **Dica**: Alguns pacotes, como PyTorch, podem demorar a oferecer instaladores para versões muito novas do Python. Priorize 3.10 ou 3.11 para garantir compatibilidade com CUDA e aceleração via GPU.
+> **Dica**: Alguns pacotes, como PyTorch, podem demorar a oferecer instaladores para versões muito novas do Python. Priorize 3.10, 3.11 ou 3.12 para garantir compatibilidade com CUDA e aceleração via GPU.
 
 ---
 
-## 🧱 Etapa 1 – Instalar o Python
+## Etapa 1 – Instalar o Python
 
 ### Opção A – Instalação automática (recomendada)
 1. Abra o **PowerShell** (menu iniciar → digite `PowerShell`).
@@ -52,17 +52,17 @@ Ela permite transformar gravações de entrevistas, aulas, palestras ou vídeos 
     pip 24.x.x
     ```
 
-    > ✅ O Oratio Transcripta também funciona com Python 3.9, 3.10 e 3.11. Se já tiver uma dessas versões instaladas, o guia continua válido.
+    > O Oratio Transcripta também funciona com Python 3.9, 3.10 e 3.11. Se já tiver uma dessas versões instaladas, o guia continua válido.
 
 ### Opção B – Instalação manual
 1. Acesse [python.org/downloads](https://www.python.org/downloads/).
-2. Baixe o instalador da versão LTS desejada (3.10 ou 3.11 são as mais compatíveis para bibliotecas de IA).
+2. Baixe o instalador da versão LTS (Long Term Support) desejada.
 3. Durante a instalação, marque a caixa **“Add Python to PATH”**.
 4. Conclua a instalação e repita o teste com `python --version` e `pip --version`.
 
 ---
 
-## 🎵 Etapa 2 – Instalar o FFmpeg e adicionar ao PATH
+## Etapa 2 – Instalar o FFmpeg e adicionar ao PATH
 
 ### Opção A – Instalação automática
 ```powershell
@@ -70,7 +70,7 @@ winget install Gyan.FFmpeg
 ```
 
 ### Opção B – Instalação manual
-1. Baixe o pacote ZIP **“ffmpeg-release-essentials”** para Windows.
+1. Baixe o pacote ZIP [**“ffmpeg-release-essentials”**](https://www.ffmpeg.org/download.html) para Windows.
 2. Extraia o conteúdo em `C:\\ffmpeg\\` (o caminho pode ser outro, se preferir).
 3. Adicione `C:\\ffmpeg\\bin` ao PATH do Windows:
    - Painel de Controle → Sistema → Configurações avançadas do sistema.
@@ -82,18 +82,18 @@ winget install Gyan.FFmpeg
    ffmpeg -version
    ```
 
-   A exibição da versão confirma que está tudo certo ✅
+   A exibição da versão confirma que está tudo certo
 
 ---
 
-## 🛠️ Etapa 3 – Preparar o ambiente de desenvolvimento
+## Etapa 3 – Preparar o ambiente de desenvolvimento
 
 ### 3.1 Baixar o código do projeto
-1. Acesse o repositório oficial (por exemplo, no GitHub).
+1. Acesse o repositório oficial.
 2. Clique em **Code → Download ZIP**.
-3. Extraia o conteúdo em uma pasta fácil de lembrar, como `C:\\Projetos\\oratiotranscripta`.
+3. Extraia o conteúdo em um diretório (pasta) fácil de lembrar, como `C:\\Projetos\\oratiotranscripta`.
 
-> 💾 Se preferir usar Git, você pode executar `git clone https://github.com/...` no PowerShell. O restante das instruções permanece igual.
+> Se preferir usar Git, você pode executar `git clone https://github.com/...` no PowerShell. O restante das instruções permanece igual.
 
 ### 3.2 Criar um ambiente virtual (venv)
 1. Abra o PowerShell e navegue até a pasta do projeto:
@@ -133,11 +133,11 @@ winget install Gyan.FFmpeg
 pip install -U ".[all]"
 ```
 
-> ⚠️ Se ocorrer erro ao instalar `webrtcvad`, instale o **Visual Studio Build Tools** com a carga **Desktop development with C++** e repita o comando acima.
+> Se ocorrer erro ao instalar `webrtcvad`, instale o **Visual Studio Build Tools** com a carga **Desktop development with C++** e repita o comando acima.
 
 ---
 
-## 🔑 Etapa 4 – Criar e configurar sua conta na Hugging Face (para Pyannote)
+## Etapa 4 – Criar e configurar sua conta na Hugging Face (para Pyannote)
 
 1. Acesse [huggingface.co](https://huggingface.co) e crie uma conta gratuita.
 2. Aceite os termos de uso dos modelos:
@@ -166,7 +166,7 @@ pip install -U ".[all]"
 
 ---
 
-## 🎧 Etapa 5 – Testar o funcionamento da CLI
+## Etapa 5 – Testar o funcionamento da CLI
 
 Com o ambiente virtual ativo (`(.venv)` no prompt), execute:
 
@@ -175,11 +175,12 @@ python -m oratiotranscripta --help
 python -m oratiotranscripta.annotate --help
 ```
 
-A exibição das opções da CLI confirma que a instalação está pronta 🎉
+A exibição das opções da CLI confirma que a instalação está pronta
 
 ---
+## Exemplos:
 
-## 🚀 Sessão 1 – Transcrever um vídeo do YouTube
+## Sessão 1 – Transcrever um vídeo do YouTube
 
 Exemplo básico executado apenas na CPU (sem GPU). Ajuste os valores entre aspas conforme o seu caso.
 
@@ -216,7 +217,7 @@ python -m oratiotranscripta \
 | `--run-id youtube_demo` | Define manualmente o identificador da execução (subpasta). |
 | `--manifest` | Gera `run_manifest.json` automaticamente dentro da pasta da execução. |
 
-> 🗂️ **Onde os arquivos são salvos?** Sempre é criada uma subpasta com o valor de `--run-id` (ou um timestamp automático). Dentro dela, os arquivos usam o nome da pasta de saída (`youtube` no exemplo) como prefixo.
+> **Onde os arquivos são salvos?** Sempre é criada uma subpasta com o valor de `--run-id` (ou um timestamp automático). Dentro dela, os arquivos usam o nome da pasta de saída (`youtube` no exemplo) como prefixo.
 
 ### Resultado esperado
 
@@ -235,7 +236,7 @@ Se você não informar `--run-id`, o Oratio Transcripta criará algo como `20240
 
 ---
 
-## 🧑‍💻 Sessão 2 – Transcrever um arquivo local
+## Sessão 2 – Transcrever um arquivo local
 
 ```powershell
 python -m oratiotranscripta \
@@ -258,7 +259,7 @@ Resultado organizado em `.\\saidas\\local\\aula1\\`, com arquivos `local.txt`, `
 
 ---
 
-## 📝 Sessão 3 – Anotar uma transcrição revisada (Estágio B)
+## Sessão 3 – Anotar uma transcrição revisada (Estágio B)
 
 Após revisar manualmente o arquivo `.txt`, `.srt` ou `.vtt` gerado na etapa anterior, execute:
 
@@ -279,11 +280,11 @@ Esse comando:
 - Cria um manifesto FAIR (`entrevista.annotated.manifest.json`) com hashes, métricas e proveniência.
 - Permite rastrear o caminho entre o áudio original e o texto revisado.
 
-> 🔁 **Manifesto da anotação**: quando `--manifest` é utilizado na CLI de anotação, o arquivo é salvo ao lado da saída final, com sufixo `.manifest.json` (por exemplo, `entrevista.annotated.manifest.json`).
+> **Manifesto da anotação**: quando `--manifest` é utilizado na CLI de anotação, o arquivo é salvo ao lado da saída final, com sufixo `.manifest.json` (por exemplo, `entrevista.annotated.manifest.json`).
 
 ---
 
-## ⚖️ Sessão 4 – Entendendo os estágios da pipeline
+## Entendendo os estágios da pipeline
 
 | Estágio | Função | Saídas principais |
 |---------|--------|-------------------|
@@ -292,7 +293,7 @@ Esse comando:
 
 ---
 
-## 🧭 Como localizar ou definir o `run_id`
+## Como localizar ou definir o `run_id`
 
 - **Definir manualmente**: use `--run-id nome_da_execucao` para criar uma subpasta previsível.
 - **Gerado automaticamente**: se não informar a flag, o Oratio Transcripta cria um `run_id` com data e hora (`YYYYMMDD-HHMMSS`). Verifique as subpastas dentro do diretório definido em `--out` para descobrir o valor.
@@ -300,7 +301,7 @@ Esse comando:
 
 ---
 
-## 🧭 Sessão 5 – Problemas comuns (troubleshooting)
+## Problemas comuns (troubleshooting)
 
 | Erro ou situação | Solução |
 |------------------|---------|
@@ -312,7 +313,7 @@ Esse comando:
 
 ---
 
-## 💡 Dicas úteis
+## Dicas úteis
 
 - Organize seus resultados em subpastas por projeto ou gravação.
 - Guarde sempre os arquivos brutos (`*.raw_segments.jsonl`) e `run_manifest.json` — eles são a “assinatura digital” da execução.
@@ -325,7 +326,7 @@ Esse comando:
 
 ---
 
-## 📂 Estrutura típica de projeto
+## Estrutura típica de projeto
 
 ```text
 oratiotranscripta/
@@ -352,7 +353,7 @@ oratiotranscripta/
 
 ---
 
-## 📖 Recursos avançados
+## Recursos avançados
 
 - **Alinhamento palavra a palavra (WhisperX):** adicione `--align --words --export json` durante a transcrição.
 - **Uso do Pyannote com token:** combine `--vad pyannote --diarize pyannote --pyannote-token hf_SEU_TOKEN` para diarização avançada.
@@ -364,7 +365,7 @@ oratiotranscripta/
 
 ---
 
-## 🌐 Plataformas suportadas
+## Plataformas suportadas
 
 | Sistema | Compatibilidade | Observações |
 |---------|-----------------|-------------|
@@ -374,7 +375,7 @@ oratiotranscripta/
 
 ---
 
-## 🏁 Pronto para começar!
+## Pronto para começar!
 
 Agora você pode:
 
@@ -383,4 +384,4 @@ Agora você pode:
 - Exportar metadados FAIR para reprodutibilidade completa;
 - Compartilhar resultados de forma transparente, valorizando a palavra, a memória e a pesquisa.
 
-O **Oratio Transcripta** vai além de uma ferramenta de transcrição — é uma proposta de ciência aberta aplicada à fala.
+O **Oratio Transcripta** vai além de uma ferramenta de transcrição — é uma proposta de Ciência Aberta aplicada à fala e à análise do discurso.

@@ -143,6 +143,7 @@ pip install -U ".[all]"
 2. Aceite os termos de uso dos modelos:
    - [`pyannote/voice-activity-detection`](https://huggingface.co/pyannote/voice-activity-detection)
    - [`pyannote/speaker-diarization-3.1`](https://huggingface.co/pyannote/speaker-diarization-3.1)
+   - [`pyannote/segmentation-3.0`](https://huggingface.co/pyannote/segmentation-3.0)
 3. Vá em **Settings → Access Tokens** e clique em **Create new token**:
    - Tipo: `Read`
    - Copie o token (ele começa com `hf_...`).

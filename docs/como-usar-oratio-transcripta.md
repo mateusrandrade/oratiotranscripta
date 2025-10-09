@@ -8,7 +8,7 @@ Guia completo para instalar, configurar e utilizar o **Oratio Transcripta** no W
 
 **Oratio Transcripta** é uma pipeline em Python para **transcrição e anotação automática de áudio e vídeo**, integrando tecnologias abertas como **Whisper**, **Pyannote**, **WebRTC** e **Silero**.
 
-Ela permite transformar gravações de entrevistas, aulas, palestras ou vídeos em **textos estruturados com metadados FAIR** — ou seja, **encontráveis, acessíveis, interoperáveis e reutilizáveis**.
+Ela permite transformar gravações de entrevistas, aulas, palestras ou vídeos em **textos estruturados com metadados FAIR**, ou seja, **encontráveis, acessíveis, interoperáveis e reutilizáveis**.
 
 ---
 

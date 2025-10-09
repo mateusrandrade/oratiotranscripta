@@ -89,7 +89,7 @@ Esses três modos formam o núcleo de um protocolo aberto de transcrição e ano
 
 ## Requisitos
 
-- Python ≥ 3.10.
+- Python 3.9 ou superior (recomenda-se utilizar 3.10 ou 3.11).
 - `ffmpeg` disponível no `PATH` para normalização e extração de áudio.
 - (Opcional) GPU CUDA para modelos Whisper/Faster-Whisper de maior porte.
 - (Opcional) Token da Hugging Face (`--pyannote-token` ou variáveis de ambiente) para recursos pyannote.
@@ -102,6 +102,10 @@ Esses três modos formam o núcleo de um protocolo aberto de transcrição e ano
 ```bash
 pip install .[all]  # instala o pacote e todas as dependências opcionais
 ```
+
+> **Dica (Windows):** se preferir instalar via `winget`, utilize `winget install Python.Python.3.11` ou selecione explicitamente as versões `3.9`, `3.10` ou `3.11`, que são suportadas pelo projeto.
+
+> **Nota:** alguns pacotes científicos (por exemplo, PyTorch) podem demorar a oferecer binários para versões recém-lançadas do Python. Por isso, recomenda-se usar as versões 3.10 ou 3.11 para garantir maior compatibilidade.
 
 Extras disponíveis (instale apenas o necessário):
 

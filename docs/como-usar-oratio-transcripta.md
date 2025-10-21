@@ -1,6 +1,6 @@
 # Como usar o Oratio Transcripta
 
-Guia completo para instalar, configurar e utilizar o **Oratio Transcripta** no Windows — mesmo que você **nunca tenha usado Python antes**.
+Guia completo para instalar, configurar e utilizar o **Oratio Transcripta** no Windows, mesmo que você **nunca tenha usado Python antes**.
 
 ---
 
@@ -384,4 +384,4 @@ Agora você pode:
 - Exportar metadados FAIR para reprodutibilidade completa;
 - Compartilhar resultados de forma transparente, valorizando a palavra, a memória e a pesquisa.
 
-O **Oratio Transcripta** vai além de uma ferramenta de transcrição — é uma proposta de Ciência Aberta aplicada à fala e à análise do discurso.
+O **Oratio Transcripta** vai além de uma ferramenta de transcrição semiautomatizada — é uma proposta de Ciência Aberta aplicada à fala e à análise do discurso.
